@@ -5,6 +5,7 @@ import os
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from .canary import CanaryRegistry
 from .inspectors import detect_injection, scrub_pii
 from .budget import TokenBudget, estimate_tokens
 
@@ -16,8 +17,13 @@ class GuardrailConfig:
         self.scrub_pii = os.getenv("GUARD_SCRUB_PII", "1") == "1"
 
 
-def install_guardrails(app, config: GuardrailConfig | None = None) -> None:
-    """Attach input-guarding middleware to an existing FastAPI app."""
+def install_guardrails(app, config: GuardrailConfig | None = None,
+                       canaries: CanaryRegistry | None = None) -> None:
+    """Attach input-guarding middleware to an existing FastAPI app.
+
+    ``canaries`` (optional): a registry of planted system-prompt canaries.
+    Any canary arriving as input means that tenant's prompt leaked — the
+    request is blocked and the tenant named, the canary value never echoed."""
     cfg = config or GuardrailConfig()
     budget = TokenBudget(per_request=cfg.per_request_tokens)
 
@@ -48,6 +54,17 @@ def install_guardrails(app, config: GuardrailConfig | None = None) -> None:
 
         collect(payload)
         joined = "\n".join(texts)
+        if canaries is not None:
+            leaked_tenant = canaries.scan(joined)
+            if leaked_tenant is not None:
+                return JSONResponse(
+                    status_code=422,
+                    content={
+                        "detail": "canary_detected: a planted system-prompt canary arrived as input",
+                        "matches": ["canary_detected"],
+                        "leaked_tenant": leaked_tenant,
+                    },
+                )
         verdict = detect_injection(joined)
         if verdict["score"] >= cfg.injection_threshold:
             return JSONResponse(
