@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from .canary import CanaryRegistry
 from .inspectors import detect_injection, scrub_pii
 from .budget import TokenBudget, estimate_tokens
+from .audit import AuditLog
 
 
 class GuardrailConfig:
@@ -18,14 +19,20 @@ class GuardrailConfig:
 
 
 def install_guardrails(app, config: GuardrailConfig | None = None,
-                       canaries: CanaryRegistry | None = None) -> None:
+                       canaries: CanaryRegistry | None = None,
+                       audit: AuditLog | None = None) -> None:
     """Attach input-guarding middleware to an existing FastAPI app.
 
     ``canaries`` (optional): a registry of planted system-prompt canaries.
     Any canary arriving as input means that tenant's prompt leaked — the
-    request is blocked and the tenant named, the canary value never echoed."""
+    request is blocked and the tenant named, the canary value never echoed.
+    ``audit`` (optional): bounded log of blocked events keyed by tenant."""
     cfg = config or GuardrailConfig()
     budget = TokenBudget(per_request=cfg.per_request_tokens)
+
+    def note(request: Request, layer: str, action: str, detail: str | None = None) -> None:
+        if audit is not None:
+            audit.record(request.headers.get("X-Tenant-Id", "unknown"), layer, action, detail)
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -57,6 +64,7 @@ def install_guardrails(app, config: GuardrailConfig | None = None,
         if canaries is not None:
             leaked_tenant = canaries.scan(joined)
             if leaked_tenant is not None:
+                note(request, "canary", "blocked", f"leaked_tenant={leaked_tenant}")
                 return JSONResponse(
                     status_code=422,
                     content={
@@ -67,6 +75,7 @@ def install_guardrails(app, config: GuardrailConfig | None = None,
                 )
         verdict = detect_injection(joined)
         if verdict["score"] >= cfg.injection_threshold:
+            note(request, "injection", "blocked")
             return JSONResponse(
                 status_code=422,
                 content={"detail": "input blocked by guardrails", "matches": [m["rule"] for m in verdict["matches"]]},
@@ -74,10 +83,12 @@ def install_guardrails(app, config: GuardrailConfig | None = None,
         est = estimate_tokens(joined)
         budget_verdict = budget.check(est)
         if not budget_verdict["allowed"]:
+            note(request, "budget", "blocked", budget_verdict["reason"])
             return JSONResponse(status_code=429, content={"detail": budget_verdict["reason"]})
         if cfg.scrub_pii and texts:
             scrubbed = scrub_pii(joined)
             if scrubbed["findings"]:
+                note(request, "pii", "blocked", ",".join(scrubbed["findings"]))
                 return JSONResponse(
                     status_code=422,
                     content={"detail": "pii detected; resubmit sanitized input", "findings": scrubbed["findings"]},

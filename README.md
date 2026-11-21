@@ -28,9 +28,19 @@ install_guardrails(app)   # every POST is now screened
 - Blocked responses include machine-readable rule names so callers can log/aggregate attack classes
 - Zero hard deps beyond FastAPI; tiktoken optional for exact token counts
 
+## Stable pseudonyms + audit
+
+`pseudonymize_pii(text, tenant)` replaces each detected value with a
+`KIND_<12 hex>` UUIDv5 digest scoped to the tenant — the same value maps to the
+same pseudonym inside one tenant and cannot be reversed; no raw values or map
+are returned. `AuditLog(max_events=200)` keeps a bounded newest-first trail,
+and `install_guardrails(..., audit=log)` records one event per blocked
+injection, canary, PII or budget breach with the `X-Tenant-Id` (default
+`unknown`). Existing status codes and bodies are unchanged.
+
 ## Tests
 
-20 tests incl. adversarial suite: classic jailbreak phrases, base64-wrapped injections, zero-width and
+32 tests incl. adversarial suite: classic jailbreak phrases, base64-wrapped injections, zero-width and
 homoglyph evasions (caught after normalization, prose untouched), canary leak tripwires (tenant named,
 value never echoed), Luhn-passing vs failing numbers, JWT/Slack/Google/generic-labeled secrets,
 budget window math, and middleware behavior on clean/injected/PII payloads.
