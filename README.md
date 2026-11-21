@@ -38,6 +38,12 @@ and `install_guardrails(..., audit=log)` records one event per blocked
 injection, canary, PII or budget breach with the `X-Tenant-Id` (default
 `unknown`). Existing status codes and bodies are unchanged.
 
+## Policy datasheet (Harvard Edge ML-Sensors cross-pollination)
+
+`guardrails.datasheet` emits a versioned datasheet for a deployed policy:
+layers, thresholds, intended use, limitations, privacy and environmental
+posture. Missing optional sections render as "not documented".
+
 ## Tests
 
 32 tests incl. adversarial suite: classic jailbreak phrases, base64-wrapped injections, zero-width and
