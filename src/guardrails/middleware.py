@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from .canary import CanaryRegistry
