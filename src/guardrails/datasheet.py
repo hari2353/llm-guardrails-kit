@@ -45,9 +45,14 @@ class GuardrailDatasheet:
             lines.extend(f"- {key}: {value}" for key, value in self.thresholds.items())
         else:
             lines.append("not documented")
-        lines.extend(["", "## Intended use", "", self.intended_use, "", "## Limitations", ""])
+        lines.extend(
+            ["", "## Intended use", "", self.intended_use, "", "## Limitations", ""]
+        )
         lines.extend(f"- {item}" for item in self.limitations)
-        for title, payload in (("Privacy", self.privacy), ("Environmental", self.environmental)):
+        for title, payload in (
+            ("Privacy", self.privacy),
+            ("Environmental", self.environmental),
+        ):
             lines.extend(["", f"## {title}", ""])
             if payload:
                 lines.extend(f"- {key}: {value}" for key, value in payload.items())

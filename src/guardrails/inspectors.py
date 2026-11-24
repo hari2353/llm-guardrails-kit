@@ -9,10 +9,30 @@ _INVISIBLES = re.compile("[\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]"
 # lookalike fold: cyrillic (and a few fullwidth/other blocks) onto ASCII
 # lookalikes, so a single str.translate pass makes rules match what a human reads
 _HOMOGLYPHS = {
-    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x",
-    "і": "i", "ј": "j", "қ": "k", "ѕ": "s", "ԁ": "d", "ɡ": "g", "ν": "v",
-    "ｍ": "m", "ｗ": "w", "ｚ": "z", "Ƅ": "b", "ｆ": "f", "ｑ": "q", "ｒ": "r",
-    "ｔ": "t", "ｕ": "u", "ℓ": "l",
+    "а": "a",
+    "е": "e",
+    "о": "o",
+    "р": "p",
+    "с": "c",
+    "у": "y",
+    "х": "x",
+    "і": "i",
+    "ј": "j",
+    "қ": "k",
+    "ѕ": "s",
+    "ԁ": "d",
+    "ɡ": "g",
+    "ν": "v",
+    "ｍ": "m",
+    "ｗ": "w",
+    "ｚ": "z",
+    "Ƅ": "b",
+    "ｆ": "f",
+    "ｑ": "q",
+    "ｒ": "r",
+    "ｔ": "t",
+    "ｕ": "u",
+    "ℓ": "l",
 }
 
 
@@ -26,13 +46,32 @@ def normalize(text: str) -> str:
 
 
 PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("ignore_instructions", re.compile(r"ignore (all |any |the )?(previous|prior|above) instructions", re.I)),
-    ("system_prompt_leak", re.compile(r"(reveal|show|print|repeat) (your|the) (system prompt|instructions)", re.I)),
-    ("role_hijack", re.compile(r"you are now (a|an) (unrestricted|DAN|evil|hacker)", re.I)),
+    (
+        "ignore_instructions",
+        re.compile(
+            r"ignore (all |any |the )?(previous|prior|above) instructions", re.I
+        ),
+    ),
+    (
+        "system_prompt_leak",
+        re.compile(
+            r"(reveal|show|print|repeat) (your|the) (system prompt|instructions)", re.I
+        ),
+    ),
+    (
+        "role_hijack",
+        re.compile(r"you are now (a|an) (unrestricted|DAN|evil|hacker)", re.I),
+    ),
     ("delimiter_abuse", re.compile(r"<\|(im_start|im_end|endoftext|system)\|>", re.I)),
-    ("override_directive", re.compile(r"(new|updated) (system )?(directive|instructions):", re.I)),
+    (
+        "override_directive",
+        re.compile(r"(new|updated) (system )?(directive|instructions):", re.I),
+    ),
     ("exfiltration", re.compile(r"(send|post) .{0,40} to https?://", re.I)),
-    ("jailbreak_phrase", re.compile(r"\b(dev mode|do anything now|no restrictions)\b", re.I)),
+    (
+        "jailbreak_phrase",
+        re.compile(r"\b(dev mode|do anything now|no restrictions)\b", re.I),
+    ),
 ]
 
 
@@ -62,21 +101,34 @@ def detect_injection(text: str) -> dict:
 
 REDACTIONS = [
     ("email", re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")),
-    ("phone_intl", re.compile(r"\+\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}")),
+    (
+        "phone_intl",
+        re.compile(r"\+\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}"),
+    ),
     ("ssn_like", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
-    ("api_key", re.compile(r"\b(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16})\b")),
-    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
+    (
+        "api_key",
+        re.compile(r"\b(sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16})\b"),
+    ),
+    (
+        "jwt",
+        re.compile(
+            r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"
+        ),
+    ),
     ("slack_token", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b")),
     ("google_api_key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
 ]
 
 _GENERIC_LABEL = re.compile(
     r"(?<![A-Za-z0-9])(?:password|passwd|secret|api_?key|auth_?token|access_?token)"
-    r"""[\s"'=:_]{1,3}""")
+    r"""[\s"'=:_]{1,3}"""
+)
 _GENERIC_SECRET = re.compile(
     r"(?<![A-Za-z0-9])(?:password|passwd|secret|api_?key|auth_?token|access_?token)"
     r"""[\s"'=:_]{1,3}"""
-    r"[A-Za-z0-9/+!@#$%^&*_-]{20,}")
+    r"[A-Za-z0-9/+!@#$%^&*_-]{20,}"
+)
 
 
 def _luhn_ok(number: str) -> bool:
@@ -95,6 +147,7 @@ def scrub_pii(text: str) -> dict:
     redacted = text
     findings = []
     for name, pattern in REDACTIONS:
+
         def _sub(match, _name=name):
             findings.append(_name)
             return f"[REDACTED_{_name.upper()}]"

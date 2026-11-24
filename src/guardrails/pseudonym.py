@@ -3,6 +3,7 @@
 Deterministic UUIDv5 digests keep the same value linkable inside one tenant
 without storing a reversible map or ever returning the raw value.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -29,6 +30,7 @@ def pseudonymize_pii(text: str, tenant: str) -> dict:
     findings: list[str] = []
     out = text
     for kind, pattern in REDACTIONS:
+
         def _sub(match, _kind=kind):
             findings.append(_kind)
             return pseudonymizer.mask(match.group(0), _kind)

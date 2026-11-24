@@ -2,6 +2,7 @@
 plant it in that tenant's system prompt, and register it here. If the
 token ever arrives as INPUT, the tenant's prompt has leaked into the
 wild — block and name the tenant, never echoing the canary itself."""
+
 from __future__ import annotations
 
 import secrets

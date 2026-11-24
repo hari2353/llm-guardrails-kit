@@ -38,11 +38,16 @@ class TokenBudget:
 
 def validate_json_output(raw: str, required_keys: list[str]) -> dict:
     try:
-        data = json.loads(raw.strip().removeprefix("```json").removesuffix("```").strip())
+        data = json.loads(
+            raw.strip().removeprefix("```json").removesuffix("```").strip()
+        )
     except Exception as exc:
         return {"valid": False, "error": f"invalid json: {exc}"}
     missing = [key for key in required_keys if key not in data]
     if missing:
-        return {"valid": False, "error": f"missing keys: {missing}", "retry_hint": f"Include {missing}. Reply JSON only."}
+        return {
+            "valid": False,
+            "error": f"missing keys: {missing}",
+            "retry_hint": f"Include {missing}. Reply JSON only.",
+        }
     return {"valid": True, "data": data}
-

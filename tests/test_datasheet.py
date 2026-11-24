@@ -3,7 +3,8 @@ from guardrails.datasheet import build_datasheet
 
 def test_datasheet_contains_layers_and_thresholds():
     sheet = build_datasheet(
-        "input-guard", 2,
+        "input-guard",
+        2,
         layers=("injection", "pii", "budget"),
         thresholds={"injection_threshold": 0.35},
         intended_use="Block unsafe prompts before the model.",
@@ -18,7 +19,8 @@ def test_datasheet_contains_layers_and_thresholds():
 
 def test_missing_optional_sections_rendered():
     sheet = build_datasheet(
-        "input-guard", 1,
+        "input-guard",
+        1,
         layers=("pii",),
         intended_use="Scrub PII.",
         limitations=("False positives on code.",),
@@ -29,11 +31,41 @@ def test_missing_optional_sections_rendered():
 
 def test_datasheet_rejects_invalid():
     for kwargs in (
-        {"name": " ", "version": 1, "layers": ("pii",), "intended_use": "use", "limitations": ("x",)},
-        {"name": "g", "version": 0, "layers": ("pii",), "intended_use": "use", "limitations": ("x",)},
-        {"name": "g", "version": 1, "layers": (), "intended_use": "use", "limitations": ("x",)},
-        {"name": "g", "version": 1, "layers": ("pii",), "intended_use": " ", "limitations": ("x",)},
-        {"name": "g", "version": 1, "layers": ("pii",), "intended_use": "use", "limitations": ()},
+        {
+            "name": " ",
+            "version": 1,
+            "layers": ("pii",),
+            "intended_use": "use",
+            "limitations": ("x",),
+        },
+        {
+            "name": "g",
+            "version": 0,
+            "layers": ("pii",),
+            "intended_use": "use",
+            "limitations": ("x",),
+        },
+        {
+            "name": "g",
+            "version": 1,
+            "layers": (),
+            "intended_use": "use",
+            "limitations": ("x",),
+        },
+        {
+            "name": "g",
+            "version": 1,
+            "layers": ("pii",),
+            "intended_use": " ",
+            "limitations": ("x",),
+        },
+        {
+            "name": "g",
+            "version": 1,
+            "layers": ("pii",),
+            "intended_use": "use",
+            "limitations": (),
+        },
     ):
         try:
             build_datasheet(**kwargs)
@@ -44,8 +76,13 @@ def test_datasheet_rejects_invalid():
 
 def test_datasheet_is_deterministic():
     kwargs = dict(
-        name="g", version=1, layers=("pii",), intended_use="use",
-        limitations=("x",), privacy={"pii": "none stored"}, environmental={"kwh": 0.1},
+        name="g",
+        version=1,
+        layers=("pii",),
+        intended_use="use",
+        limitations=("x",),
+        privacy={"pii": "none stored"},
+        environmental={"kwh": 0.1},
     )
     first = build_datasheet(**kwargs).to_markdown()
     second = build_datasheet(**kwargs).to_markdown()

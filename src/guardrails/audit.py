@@ -1,4 +1,5 @@
 """Bounded, in-memory audit trail for blocked guardrail events."""
+
 from __future__ import annotations
 
 from collections import deque
@@ -11,14 +12,17 @@ class AuditLog:
         self.max_events = max_events
         self._events: deque[dict] = deque(maxlen=max_events)
 
-    def record(self, tenant: str, layer: str, action: str,
-               detail: str | None = None) -> None:
-        self._events.append({
-            "tenant": tenant,
-            "layer": layer,
-            "action": action,
-            "detail": None if detail is None else str(detail)[:200],
-        })
+    def record(
+        self, tenant: str, layer: str, action: str, detail: str | None = None
+    ) -> None:
+        self._events.append(
+            {
+                "tenant": tenant,
+                "layer": layer,
+                "action": action,
+                "detail": None if detail is None else str(detail)[:200],
+            }
+        )
 
     def recent(self, limit: int = 50) -> list[dict]:
         if limit < 0:

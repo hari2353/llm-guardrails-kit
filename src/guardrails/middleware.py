@@ -18,9 +18,12 @@ class GuardrailConfig:
         self.scrub_pii = os.getenv("GUARD_SCRUB_PII", "1") == "1"
 
 
-def install_guardrails(app, config: GuardrailConfig | None = None,
-                       canaries: CanaryRegistry | None = None,
-                       audit: AuditLog | None = None) -> None:
+def install_guardrails(
+    app,
+    config: GuardrailConfig | None = None,
+    canaries: CanaryRegistry | None = None,
+    audit: AuditLog | None = None,
+) -> None:
     """Attach input-guarding middleware to an existing FastAPI app.
 
     ``canaries`` (optional): a registry of planted system-prompt canaries.
@@ -30,9 +33,13 @@ def install_guardrails(app, config: GuardrailConfig | None = None,
     cfg = config or GuardrailConfig()
     budget = TokenBudget(per_request=cfg.per_request_tokens)
 
-    def note(request: Request, layer: str, action: str, detail: str | None = None) -> None:
+    def note(
+        request: Request, layer: str, action: str, detail: str | None = None
+    ) -> None:
         if audit is not None:
-            audit.record(request.headers.get("X-Tenant-Id", "unknown"), layer, action, detail)
+            audit.record(
+                request.headers.get("X-Tenant-Id", "unknown"), layer, action, detail
+            )
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -78,19 +85,27 @@ def install_guardrails(app, config: GuardrailConfig | None = None,
             note(request, "injection", "blocked")
             return JSONResponse(
                 status_code=422,
-                content={"detail": "input blocked by guardrails", "matches": [m["rule"] for m in verdict["matches"]]},
+                content={
+                    "detail": "input blocked by guardrails",
+                    "matches": [m["rule"] for m in verdict["matches"]],
+                },
             )
         est = estimate_tokens(joined)
         budget_verdict = budget.check(est)
         if not budget_verdict["allowed"]:
             note(request, "budget", "blocked", budget_verdict["reason"])
-            return JSONResponse(status_code=429, content={"detail": budget_verdict["reason"]})
+            return JSONResponse(
+                status_code=429, content={"detail": budget_verdict["reason"]}
+            )
         if cfg.scrub_pii and texts:
             scrubbed = scrub_pii(joined)
             if scrubbed["findings"]:
                 note(request, "pii", "blocked", ",".join(scrubbed["findings"]))
                 return JSONResponse(
                     status_code=422,
-                    content={"detail": "pii detected; resubmit sanitized input", "findings": scrubbed["findings"]},
+                    content={
+                        "detail": "pii detected; resubmit sanitized input",
+                        "findings": scrubbed["findings"],
+                    },
                 )
         return await call_next(request)
