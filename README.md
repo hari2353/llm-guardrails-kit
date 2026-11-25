@@ -38,6 +38,12 @@ and `install_guardrails(..., audit=log)` records one event per blocked
 injection, canary, PII or budget breach with the `X-Tenant-Id` (default
 `unknown`). Existing status codes and bodies are unchanged.
 
+## Prompt injection guard (dair-ai Prompt-Engineering-Guide cross-pollination)
+
+`guardrails.prompt_guard.scan_prompt` detects common injection patterns
+(instruction override, role hijack, delimiter smuggling, exfiltration, jailbreak)
+and returns a risk score.
+
 ## Policy datasheet (Harvard Edge ML-Sensors cross-pollination)
 
 `guardrails.datasheet` emits a versioned datasheet for a deployed policy:
